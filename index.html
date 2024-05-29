@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navbar and Footer</title>
+  <link rel="stylesheet" href="cs.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+  <h1 class="logo title" style="color: #CEE1DF ;">sosMongaguá</h1>
+    <nav class ="nav">
+  <ul class="menu">
+     <li class="item">
+  <a href="index.html" class="link">Home</a>
+  </li>
+  <li class="item">
+  <a href="about.html" class="link">About  us</a>
+  </li>
+     <li class="item">
+  <a href="blog.html" class="link">Comunidade</a>
+  </li>
+
+  </nav>
+  </div>
+  </header> 
+
+  <div class="content">
+    <div id="mapa"></div>
+
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+
+    <script>
+      const mapa = L.map("mapa").setView([-24.0924, -46.6213], 16);
+      const layer = L.tileLayer(
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }
+      );
+      layer.addTo(mapa);
+
+      const savedMarkers = JSON.parse(localStorage.getItem("markers")) || [];
+      savedMarkers.forEach((markerData) => {
+        const marker = L.marker(markerData.latlng);
+        marker
+          .bindPopup(
+            `${markerData.message} <br> <input type="button" value="Excluir" onclick="removeMarker('${markerData.id}')">`
+          )
+          .openPopup();
+        marker._id = markerData.id;
+        marker.addTo(mapa);
+      });
+
+      function saveMarkers() {
+        const markers = [];
+        mapa.eachLayer((layer) => {
+          if (layer instanceof L.Marker) {
+            markers.push({
+              id: layer._id,
+              latlng: layer.getLatLng(),
+              message: layer.getPopup().getContent().split("<br>")[0],
+            });
+          }
+        });
+        localStorage.setItem("markers", JSON.stringify(markers));
+      }
+
+      function onMapClick(e) {
+        const message = prompt("Insira uma mensagem para este local:");
+        if (message !== null && message.trim() !== "") {
+          const id = Date.now().toString();
+          const newMarker = L.marker(e.latlng).addTo(mapa);
+          newMarker._id = id;
+          newMarker
+            .bindPopup(
+              `${message} <br> <input type="button" value="Excluir" onclick="removeMarker('${id}')">`
+            )
+            .openPopup();
+          saveMarkers();
+        }
+      }
+      mapa.on("click", onMapClick);
+
+      function removeMarker(id) {
+        mapa.eachLayer((layer) => {
+          if (layer instanceof L.Marker && layer._id === id) {
+            mapa.removeLayer(layer);
+          }
+        });
+        saveMarkers();
+      }
+
+      function removeAllMarkers() {
+        mapa.eachLayer((layer) => {
+          if (layer instanceof L.Marker) {
+            mapa.removeLayer(layer);
+          }
+        });
+        localStorage.removeItem("markers");
+      }
+
+      const removeButton = document.createElement("button");
+      removeButton.id = "button";
+      removeButton.textContent = "Remover todos os marcadores";
+      removeButton.onclick = removeAllMarkers;
+      document.body.appendChild(removeButton);
+    </script>
+  </div>
+
+  <div class="footer">
+    <a href="#home" class="footer-link">Home</a>
+    <a href="#avisos" class="footer-link" id="avisosLink">Avisos</a>
+    <a href="#acidentes" class="footer-link" id="acidentesLink">Acidentes</a>
+  </div>
+
+  <div id="formOverlay" class="form-overlay" style="display: none;">
+    <div class="form-container">
+      <div id="alert" class="alert" style="display: none;">
+        Formulário enviado com sucesso!
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="Obstrução" name="op1" />
+        <label for="Obstrução">Obstrução</label>
+        <input type="checkbox" id="acidente" name="op2" />
+        <label for="acidente">ACIDENTE</label>
+        <input type="checkbox" id="transito" name="op3" />
+        <label for="transito">TRANSITO</label>
+      </div>
+      <textarea
+        class="textbox"
+        id="textbox"
+        name="textbox"
+        placeholder="Descreva o problema encontrado..."
+      ></textarea>
+      <div class="file-input-container">
+        <img
+          id="imagePreview"
+          style="display: none; width: 100%; height: auto; margin-bottom: 20px;"
+        />
+        <label for="fileInput">+</label>
+        <input type="file" id="fileInput" accept="image/*" />
+      </div>
+      <button type="button" id="submitButton">ENVIAR</button>
+      <button type="button" id="closeButton">Fechar</button>
+    </div>
+  </div>
+
+  <div id="avisosOverlay" class="form-overlay" style="display: none;">
+    <div class="form-container">
+      <h2>Avisos</h2>
+      <div id="avisosContent"></div>
+      <button type="button" id="closeAvisosButton">Fechar</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      function resetForm() {
+        document.getElementById("Obstrução").checked = false;
+        document.getElementById("acidente").checked = false;
+        document.getElementById("transito").checked = false;
+        document.getElementById("textbox").value = "";
+        document.getElementById("imagePreview").style.display = "none";
+        document.getElementById("fileInput").value = "";
+      }
+
+      document.querySelectorAll('.checkbox-group input[type="checkbox"]').forEach(function (checkbox) {
+        checkbox.addEventListener("change", function () {
+          if (this.checked) {
+            this.nextElementSibling.style.backgroundColor = "#888";
+          } else {
+            this.nextElementSibling.style.backgroundColor = "#f0f0f0";
+          }
+        });
+      });
+
+      document.getElementById("fileInput").addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const imagePreview = document.getElementById("imagePreview");
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      document.getElementById("submitButton").addEventListener("click", function () {
+        const obstruction = document.getElementById("Obstrução").checked;
+        const accident = document.getElementById("acidente").checked;
+        const traffic = document.getElementById("transito").checked;
+        const description = document.getElementById("textbox").value;
+
+        const imageSrc = document.getElementById("imagePreview").src;
+
+        const data = { Obstrução: obstruction, acidente: accident, transito: traffic, description, imageSrc };
+
+        const alerts = JSON.parse(localStorage.getItem("alerts")) || [];
+        alerts.push(data);
+        localStorage.setItem("alerts", JSON.stringify(alerts));
+
+        const alertBox = document.getElementById("alert");
+        alertBox.style.display = "block";
+        setTimeout(function () {
+          alertBox.style.display = "none";
+          document.getElementById("formOverlay").style.display = "none";
+          resetForm();
+        }, 2000);
+      });
+
+      document.getElementById("acidentesLink").addEventListener("click", function (event) {
+        event.preventDefault();
+        document.getElementById("formOverlay").style.display = "flex";
+      });
+
+      document.getElementById("closeButton").addEventListener("click", function () {
+        document.getElementById("formOverlay").style.display = "none";
+        resetForm();
+      });
+
+      document.getElementById("avisosLink").addEventListener("click", function (event) {
+        event.preventDefault();
+        const avisosOverlay = document.getElementById("avisosOverlay");
+        const avisosContent = document.getElementById("avisosContent");
+
+        const alerts = JSON.parse(localStorage.getItem("alerts")) || [];
+        if (alerts.length > 0) {
+          avisosContent.innerHTML = alerts
+            .map(
+              (alert) => `
+            <div>
+              <p><strong>Obstrução:</strong> ${alert.Obstrução ? "Sim" : "Não"}</p>
+              <p><strong>ACIDENTE:</strong> ${alert.acidente ? "Sim" : "Não"}</p>
+              <p><strong>TRANSITO:</strong> ${alert.transito ? "Sim" : "Não"}</p>
+              <p><strong>Descrição:</strong> ${alert.description}</p>
+              ${
+                alert.imageSrc
+                  ? `<img src="${alert.imageSrc}" alt="Imagem" style="width: 100%; height: auto;" />`
+                  : ""
+              }
+            </div>
+            <hr />
+          `
+            )
+            .join("");
+        } else {
+          avisosContent.innerHTML = "<p>Nenhum dado enviado.</p>";
+        }
+
+        avisosOverlay.style.display = "flex";
+      });
+
+      document.getElementById("closeAvisosButton").addEventListener("click", function () {
+        document.getElementById("avisosOverlay").style.display = "none";
+      });
+    });
+  </script>
+</body>
+</html>
